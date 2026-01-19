@@ -1,0 +1,27 @@
+# Core
+python>=3.10
+
+# Data handling
+pandas
+numpy
+matplotlib
+
+# PDFs & OCR
+PyPDF2
+pytesseract
+Pillow
+pdf2image
+
+# LangChain ecosystem
+langchain
+langchain-core
+langchain-community
+langchain-ollama
+langchain-text-splitters
+
+# Vector database
+chromadb
+
+# Utilities
+tqdm
+python-dotenv
