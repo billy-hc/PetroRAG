@@ -13,7 +13,7 @@ Volve Dataset - Well Log 15_9-F-11A
 - Setup virtual environment (windows):
      ```
      python -m venv .venv
-     source .venv\Scripts\activate`
+     source .venv\Scripts\activate
      ```
 - Install required packages
      ```
