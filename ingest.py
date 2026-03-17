@@ -2,11 +2,12 @@
 ingest.py — OCR, chunk, and upsert petrophysics PDFs into the Chroma vectorstore.
 
 Usage:
-    python ingest.py                         # process all PDFs in ./content/
-    python ingest.py path/to/file.pdf        # process a single file
-    python ingest.py --force                 # re-ingest already-processed files
-    python ingest.py --list                  # show ingested files
-    python ingest.py --pages 10 25 file.pdf  # OCR only pages 10–25
+    python ingest.py                              # process all PDFs in ./content/
+    python ingest.py path/to/file.pdf             # process a single file
+    python ingest.py --force                      # re-ingest already-processed files
+    python ingest.py --list                       # show ingested files
+    python ingest.py --pages 10 25 file.pdf       # OCR only pages 10–25
+    python ingest.py --save-text file.pdf         # also save raw OCR text to ./content/<name>.txt
 """
 
 import argparse
@@ -15,7 +16,7 @@ import sys
 from pathlib import Path
 
 import pytesseract
-from langchain_chroma import Chroma
+from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
 from langchain_ollama import OllamaEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -118,12 +119,20 @@ def upsert_docs(docs: list[Document]) -> None:
 
 # ── Main ingest logic ─────────────────────────────────────────────────────────
 
+def save_text(pdf_path: Path, text: str) -> Path:
+    out_path = pdf_path.with_suffix(".txt")
+    out_path.write_text(text, encoding="utf-8")
+    print(f"  Raw OCR text saved → {out_path}")
+    return out_path
+
+
 def ingest_file(
     pdf_path: Path,
     source_label: str = None,
     first_page: int = 1,
     last_page: int = None,
     force: bool = False,
+    save_raw_text: bool = False,
 ) -> None:
     registry = load_registry()
     key = str(pdf_path.resolve())
@@ -134,6 +143,10 @@ def ingest_file(
 
     source_label = source_label or pdf_path.stem
     text = ocr_pdf(pdf_path, first_page=first_page, last_page=last_page)
+
+    if save_raw_text:
+        save_text(pdf_path, text)
+
     docs = chunk_and_filter(text, source_name=source_label)
     upsert_docs(docs)
 
@@ -165,8 +178,10 @@ def main():
     parser.add_argument("files", nargs="*", help="PDF file(s) to ingest. Defaults to all in ./content/")
     parser.add_argument("--force",  action="store_true", help="Re-ingest even if already processed")
     parser.add_argument("--list",   action="store_true", help="List ingested files and exit")
-    parser.add_argument("--pages",  nargs=2, type=int, metavar=("FIRST", "LAST"),
+    parser.add_argument("--pages",     nargs=2, type=int, metavar=("FIRST", "LAST"),
                         help="Page range for OCR, e.g. --pages 10 25")
+    parser.add_argument("--save-text", action="store_true",
+                        help="Save raw OCR text to ./content/<filename>.txt for inspection")
     args = parser.parse_args()
 
     if args.list:
@@ -194,6 +209,7 @@ def main():
             first_page=first_page,
             last_page=last_page,
             force=args.force,
+            save_raw_text=args.save_text,
         )
 
     print("\nAll done.")
